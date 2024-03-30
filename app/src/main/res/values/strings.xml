@@ -5,4 +5,7 @@
     <string name="score">SCORE: </string>
     <string name="score_number"><u>0</u></string>
     <string name="new_game">NEW GAME</string>
+    <string name="letter_used">The letter has been used</string>
+    <string name="select_connected_letters">You may only select connected letters</string>
+
 </resources>
