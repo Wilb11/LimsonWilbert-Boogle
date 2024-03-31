@@ -16,6 +16,9 @@ class BoardFragment : Fragment() {
     private val selectedLetters = StringBuilder()
     private val selectedButtonIds = mutableListOf<Int>()
     private lateinit var displayWord: TextView
+    private lateinit var clearButton: Button
+    private lateinit var submitButton: Button
+    private var totalScore = 0
 
     // Initialize this map directly to avoid unresolved reference
     private val mapOfButtons = mapOf(
@@ -45,7 +48,48 @@ class BoardFragment : Fragment() {
         val view = inflater.inflate(R.layout.board_fragment, container, false)
         displayWord = view.findViewById(R.id.display_word)
         setupGameBoard(view)
+        clearButton = view.findViewById(R.id.clear_button)
+        clearButtonFunction(view)
+        submitButton = view.findViewById(R.id.submit_button)
+        submitButtonFunction(view)
         return view
+    }
+
+    private fun submitButtonFunction(view: View) {
+        val word = selectedLetters.toString()
+        val vowels = "AEIOU"
+        var vowelCount = 0
+        var vowelCheck = false
+        for (char in word) {
+            if (char in vowels){
+                vowelCount++
+            }
+            if (vowelCount >= 2){
+                vowelCheck = true
+            }
+        }
+        selectedLetters.clear()
+        selectedButtonIds.clear()
+        displayWord.text = ""
+        resetButtons()
+    }
+
+
+    private fun clearButtonFunction(view: View) {
+        clearButton.setOnClickListener {
+            selectedLetters.clear()
+            selectedButtonIds.clear()
+            displayWord.text = ""
+            resetButtons()
+        }
+    }
+    private fun resetButtons() {
+        val defaultButton = ContextCompat.getDrawable(requireContext(), R.drawable.individual_button)
+        for (i in 1..16) {
+            val buttonId = resources.getIdentifier("button$i", "id", context?.packageName)
+            val button = view?.findViewById<Button>(buttonId)
+            button?.background = defaultButton
+        }
     }
 
     private fun setupGameBoard(view: View) {
