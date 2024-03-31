@@ -123,6 +123,15 @@ class BoardFragment : Fragment() {
         }
     }
 
+    fun resetGame() {
+        selectedLetters.clear()
+        selectedButtonIds.clear()
+        displayWord.text = ""
+        totalScore = 0
+        resetButtons()
+        setupGameBoard(requireView())
+    }
+
     private fun handleButtonClick(button: Button, letter: String) {
         if (selectedButtonIds.contains(button.id)) {
             Toast.makeText(context, "Letter already used", Toast.LENGTH_SHORT).show()
