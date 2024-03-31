@@ -12,6 +12,11 @@ class MainActivity : AppCompatActivity(), GameShare {
         supportFragmentManager.beginTransaction().replace(R.id.gameFragment, gameBoardFragment).commit()
     }
 
+    override fun updateScore(score: Int) {
+        val scoreFragment = supportFragmentManager.findFragmentById(R.id.scoreFragment) as? ScoreFragment
+        scoreFragment?.displayScore(score)
+    }
+
     override fun resetGame() {
         val gameBoardFragment = supportFragmentManager.findFragmentById(R.id.gameFragment) as? BoardFragment
         gameBoardFragment?.resetGame()

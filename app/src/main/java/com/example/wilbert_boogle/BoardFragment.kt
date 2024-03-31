@@ -13,14 +13,13 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 
 class BoardFragment : Fragment() {
-    private val selectedLetters = StringBuilder()
+    private val ChosenLetters = StringBuilder()
     private val selectedButtonIds = mutableListOf<Int>()
-    private lateinit var displayWord: TextView
-    private lateinit var clearButton: Button
-    private lateinit var submitButton: Button
+    private lateinit var showWord: TextView
+    private lateinit var clearFunc: Button
+    private lateinit var submitFunc: Button
     private var totalScore = 0
-
-    // Initialize this map directly to avoid unresolved reference
+    private val repWords = mutableSetOf<String>()
     private val mapOfButtons = mapOf(
         // Your button adjacency mapping
         R.id.button1 to listOf(R.id.button2, R.id.button5, R.id.button6),
@@ -46,40 +45,61 @@ class BoardFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.board_fragment, container, false)
-        displayWord = view.findViewById(R.id.display_word)
+        showWord = view.findViewById(R.id.display_word)
         setupGameBoard(view)
-        clearButton = view.findViewById(R.id.clear_button)
-        clearButtonFunction(view)
-        submitButton = view.findViewById(R.id.submit_button)
-        submitButtonFunction(view)
+        clearFunc = view.findViewById(R.id.clear_button)
+        clearFuncFunction(view)
+        submitFunc = view.findViewById(R.id.submit_button)
+        submitFuncFunction()
         return view
     }
 
-    private fun submitButtonFunction(view: View) {
-        val word = selectedLetters.toString()
-        val vowels = "AEIOU"
-        var vowelCount = 0
-        var vowelCheck = false
-        for (char in word) {
-            if (char in vowels){
-                vowelCount++
+    private fun submitFuncFunction() {
+        submitFunc.setOnClickListener {
+            val word = ChosenLetters.toString()
+            val scoreChange = when {
+                word.length < 4 -> {
+                    showToast("Words must be at least 4 chars long", -10)
+                    -10
+                }
+                word.count { it in "AEIOU" } < 2 -> {
+                    showToast("All words must utilize a minimum of two vowels", -10)
+                    -10
+                }
+                word in repWords -> {
+                    showToast("You cannot generate the same word more than once, even if it’s from different letters", 0)
+                    0 // No score change when word is already used
+                }
+                isWordInDictionary(word) -> {
+                    repWords.add(word)
+                    val pointsAwarded = computePoints(word)
+                    showToast("That’s correct", pointsAwarded)
+                    pointsAwarded
+                }
+                else -> {
+                    showToast("That’s incorrect", -10)
+                    -10
+                }
             }
-            if (vowelCount >= 2){
-                vowelCheck = true
-            }
+            updateTotalScore(scoreChange)
         }
-        selectedLetters.clear()
-        selectedButtonIds.clear()
-        displayWord.text = ""
-        resetButtons()
     }
 
+    private fun showToast(message: String, scoreChange: Int) {
+        val sign = if (scoreChange >= 0) "+" else ""
+        Toast.makeText(requireContext(), "$message, $sign$scoreChange", Toast.LENGTH_SHORT).show()
+    }
 
-    private fun clearButtonFunction(view: View) {
-        clearButton.setOnClickListener {
-            selectedLetters.clear()
+    private fun updateTotalScore(scoreChange: Int) {
+        totalScore = maxOf(0, totalScore + scoreChange)
+        (activity as? GameShare)?.updateScore(totalScore)
+    }
+
+    private fun clearFuncFunction(view: View) {
+        clearFunc.setOnClickListener {
+            ChosenLetters.clear()
             selectedButtonIds.clear()
-            displayWord.text = ""
+            showWord.text = ""
             resetButtons()
         }
     }
@@ -123,11 +143,47 @@ class BoardFragment : Fragment() {
         }
     }
 
+    private fun isWordInDictionary(word:String): Boolean {
+        requireContext().assets.open("words.txt").bufferedReader().useLines { lines ->
+            lines.forEach { line ->
+                if (word.equals(line, ignoreCase = true)) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun computePoints(word: String): Int {
+        var points = 0
+        val vowelSet = setOf('A', 'E', 'I', 'O', 'U')
+        val highValueConsonants = setOf('S', 'Z', 'P', 'X', 'Q')
+        var hasHighValueConsonant = false
+
+        for (letter in word.uppercase()) {
+            when (letter) {
+                in vowelSet -> points += 5
+                in highValueConsonants -> {
+                    points += 1
+                    hasHighValueConsonant = true
+                }
+                else -> points += 1
+            }
+        }
+
+        if (hasHighValueConsonant) {
+            points *= 2
+        }
+
+        return points
+    }
+
     fun resetGame() {
-        selectedLetters.clear()
+        ChosenLetters.clear()
         selectedButtonIds.clear()
-        displayWord.text = ""
+        showWord.text = ""
         totalScore = 0
+        (activity as? GameShare)?.updateScore(totalScore)
         resetButtons()
         setupGameBoard(requireView())
     }
@@ -145,15 +201,15 @@ class BoardFragment : Fragment() {
     private fun selectLetter(button: Button, letter: String) {
         val clickedDrawable = ContextCompat.getDrawable(requireContext(), R.drawable.alphabet_layer)
         button.background = clickedDrawable
-        selectedLetters.append(letter)
+        ChosenLetters.append(letter)
         selectedButtonIds.add(button.id)
-        displaySelectedLetters()
+        displayChosenLetters()
     }
 
-    private fun displaySelectedLetters() {
-        val spannable = SpannableString(selectedLetters)
+    private fun displayChosenLetters() {
+        val spannable = SpannableString(ChosenLetters)
         val highlightSpan = BackgroundColorSpan(ContextCompat.getColor(requireContext(), R.color.highlight))
-        spannable.setSpan(highlightSpan, 0, selectedLetters.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        displayWord.text = spannable
+        spannable.setSpan(highlightSpan, 0, ChosenLetters.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        showWord.text = spannable
     }
 }
